@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-&k#6gq5=vb6(&apz#lw-cxyjq+-no29+-wxhr_o5e(0u3uxzp%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['anesthesia-whiteboard-dev.eba-agubspjs.us-east-1.elasticbeanstalk.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
