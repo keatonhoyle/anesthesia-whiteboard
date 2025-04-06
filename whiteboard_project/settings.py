@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-&k#6gq5=vb6(&apz#lw-cxyjq+-no29+-wxhr_o5e(0u3uxzp%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['anesthesia-whiteboard-dev.eba-agubspjs.us-east-1.elasticbeanstalk.com', 'localhost', '127.0.0.1']
 
@@ -134,7 +134,7 @@ AUTHENTICATION_BACKENDS = [
 
 # allauth settings
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # For simplicity; can be 'mandatory' later
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
 LOGIN_REDIRECT_URL = '/'
@@ -144,8 +144,8 @@ ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_URL = '/login/'
 ACCOUNT_SIGNUP_ENABLED = False
 SOCIALACCOUNT_AUTO_SIGNUP = True
-SOCIALACCOUNT_ADAPTER = 'whiteboard.adapters.CustomSocialAccountAdapter'
 ACCOUNT_USERNAME_BLACKLIST = ['admin', 'manager', 'user']
 ACCOUNT_USERNAME_MIN_LENGTH = 3
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'whiteboard.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_MODEL = 'whiteboard.models.CustomSocialAccount'
