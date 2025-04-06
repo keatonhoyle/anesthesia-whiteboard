@@ -145,3 +145,7 @@ LOGIN_URL = '/login/'
 ACCOUNT_SIGNUP_ENABLED = False
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_ADAPTER = 'whiteboard.adapters.CustomSocialAccountAdapter'
+ACCOUNT_USERNAME_BLACKLIST = ['admin', 'manager', 'user']
+ACCOUNT_USERNAME_MIN_LENGTH = 3
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'whiteboard.adapters.CustomSocialAccountAdapter'
