@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-&k#6gq5=vb6(&apz#lw-cxyjq+-no29+-wxhr_o5e(0u3uxzp%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['anesthesia-whiteboard-dev.eba-agubspjs.us-east-1.elasticbeanstalk.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
@@ -109,8 +109,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-# Static files (CSS, JavaScript, Images)
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -118,30 +116,3 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# django-allauth settings
-SITE_ID = 1  # Required for django.contrib.sites
-
-# Authentication backends
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
-]
-
-# allauth settings
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_USERNAME_REQUIRED = False
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/login/'
-ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = False
-ACCOUNT_LOGOUT_ON_GET = True
-LOGIN_URL = '/login/'
-ACCOUNT_SIGNUP_ENABLED = False
-SOCIALACCOUNT_AUTO_SIGNUP = True
-ACCOUNT_USERNAME_BLACKLIST = ['admin', 'manager', 'user']
-ACCOUNT_USERNAME_MIN_LENGTH = 3
-ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
-SOCIALACCOUNT_ADAPTER = 'whiteboard.adapters.CustomSocialAccountAdapter'
-SOCIALACCOUNT_MODEL = 'whiteboard.models.CustomSocialAccount'
