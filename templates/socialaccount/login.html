@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In Via Google - Anesthesia Whiteboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        h1 { color: #333; }
+        form { margin: 20px auto; width: 300px; }
+        input[type="submit"] { background-color: #333; color: white; padding: 10px; border: none; cursor: pointer; }
+        input[type="submit"]:hover { background-color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Sign In Via Google</h1>
+    <p>You are about to sign in using a third-party account from {{ provider }}.</p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="submit" value="Continue">
+    </form>
+</body>
+</html>
