@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-&k#6gq5=vb6(&apz#lw-cxyjq+-no29+-wxhr_o5e(0u3uxzp%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['anesthesia-whiteboard-dev.eba-agubspjs.us-east-1.elasticbeanstalk.com', 'localhost', '127.0.0.1']
 
@@ -110,10 +110,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 # Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
