@@ -1,6 +1,4 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
+from django.shortcuts import render
 import boto3
 import logging
 
@@ -37,27 +35,6 @@ def fetch_whiteboard_data():
             "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel"}
         }
 
-@login_required
 def home(request):
-    # Check user group
-    user_groups = request.user.groups.values_list('name', flat=True)
-    if 'Admin' in user_groups:
-        role = 'Admin'
-    elif 'Manager' in user_groups:
-        role = 'Manager'
-    elif 'User' in user_groups:
-        role = 'User'
-    else:
-        role = 'None'
-
-    # Fetch whiteboard data
     whiteboard = fetch_whiteboard_data()
-
-    # Pass role to template for display
-    return render(request, 'index.html', {'whiteboard': whiteboard, 'role': role})
-
-def custom_logout(request):
-    logger.info("Logging out user: %s", request.user)
-    logout(request)
-    logger.info("User logged out, redirecting to /login/")
-    return redirect('/login/')
+    return render(request, 'index.html', {'whiteboard': whiteboard})

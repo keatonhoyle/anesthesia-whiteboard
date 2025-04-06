@@ -16,27 +16,19 @@
 </head>
 <body>
     <h1>Anesthesia Whiteboard</h1>
-    <p>Logged in as: {{ user.email }} (Role: {{ role }})</p>
     <table>
         <tr>
             <th>Room</th>
             <th>Provider</th>
             <th>Surgeon</th>
-            {% if role == 'Admin' or role == 'Manager' %}
-            <th>Actions</th>
-            {% endif %}
         </tr>
         {% for room, details in whiteboard.items %}
         <tr>
             <td>{{ room }}</td>
             <td>{{ details.provider }}</td>
             <td>{{ details.surgeon }}</td>
-            {% if role == 'Admin' or role == 'Manager' %}
-            <td><a href="#">Edit</a></td>  <!-- Placeholder for edit functionality -->
-            {% endif %}
         </tr>
         {% endfor %}
     </table>
-    <p><a href="{% url 'logout' %}">Log out</a></p>
 </body>
 </html>
