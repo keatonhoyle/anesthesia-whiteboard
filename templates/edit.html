@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit {{ entry.Room }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        h1 { color: #333; }
+        form { width: 50%; margin: 20px auto; text-align: left; }
+        label { display: block; margin: 10px 0 5px; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        input[type="submit"] { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        input[type="submit"]:hover { background-color: #45a049; }
+        a { color: blue; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        @media (max-width: 600px) { form { width: 90%; } }
+    </style>
+</head>
+<body>
+    <h1>Edit {{ entry.Room }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        <label for="provider">Provider:</label>
+        <input type="text" id="provider" name="provider" value="{{ entry.provider }}" required>
+        <label for="surgeon">Surgeon:</label>
+        <input type="text" id="surgeon" name="surgeon" value="{{ entry.surgeon }}" required>
+        <input type="submit" value="Save">
+    </form>
+    <p><a href="{% url 'home' %}">Back to Home</a></p>
+</body>
+</html>
