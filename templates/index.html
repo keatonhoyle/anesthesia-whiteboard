@@ -5,42 +5,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anesthesia Whiteboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        h1 { color: #333; }
-        table { border-collapse: collapse; width: 50%; margin: 20px auto; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        a { color: blue; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .message { color: green; margin: 10px; }
-        .error { color: red; margin: 10px; }
-        @media (max-width: 600px) { table { width: 90%; } }
-    </style>
+    <!-- Bootstrap 5.3.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body>
-    <h1>Anesthesia Whiteboard</h1>
-    {% if messages %}
-        {% for message in messages %}
-            <p class="{% if message.tags == 'error' %}error{% else %}message{% endif %}">{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-    <p><a href="{% url 'add_entry' %}">Add New Room</a></p>
-    <table>
-        <tr>
-            <th>Room</th>
-            <th>Provider</th>
-            <th>Surgeon</th>
-            <th>Actions</th>
-        </tr>
-        {% for room, details in whiteboard.items %}
-        <tr>
-            <td>{{ room }}</td>
-            <td>{{ details.provider }}</td>
-            <td>{{ details.surgeon }}</td>
-            <td><a href="{% url 'edit_entry' room %}">Edit</a></td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Anesthesia Whiteboard</h1>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        <p><a href="{% url 'add_entry' %}" class="btn btn-success mb-3">Add New Room</a></p>
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Room</th>
+                    <th>Provider</th>
+                    <th>Surgeon</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for room, details in whiteboard.items %}
+                <tr>
+                    <td>{{ room }}</td>
+                    <td>{{ details.provider }}</td>
+                    <td>{{ details.surgeon }}</td>
+                    <td><a href="{% url 'edit_entry' room %}" class="btn btn-primary btn-sm">Edit</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Bootstrap 5.3.3 JS (for alert dismissal) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
