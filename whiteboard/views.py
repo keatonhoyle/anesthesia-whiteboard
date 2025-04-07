@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 import boto3
 import logging
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -33,6 +35,20 @@ def fetch_whiteboard_data():
         logger.error(f"Error fetching data from DynamoDB: {e}")
         return None
 
+def login_view(request):
+    if request.method == 'POST':
+        # For now, redirect to select-site; we'll add proper login logic later
+        return redirect('select_site')
+    return render(request, 'login.html')
+
+@login_required
+def select_site(request):
+    if request.method == 'POST':
+        # For now, redirect to home; we'll add site selection logic later
+        return redirect('home')
+    return render(request, 'select_site.html')
+
+@login_required
 def home(request):
     whiteboard = fetch_whiteboard_data()
     if whiteboard is None:
@@ -43,6 +59,7 @@ def home(request):
         }
     return render(request, 'index.html', {'whiteboard': whiteboard})
 
+@login_required
 def edit_entry(request, room):
     if request.method == 'POST':
         provider = request.POST.get('provider')
@@ -75,6 +92,7 @@ def edit_entry(request, room):
 
     return render(request, 'edit.html', {'entry': entry})
 
+@login_required
 def add_entry(request):
     if request.method == 'POST':
         room = request.POST.get('room')
@@ -103,3 +121,7 @@ def add_entry(request):
             return redirect('home')
 
     return render(request, 'add.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
