@@ -3,7 +3,8 @@ import boto3
 import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import User
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -37,8 +38,28 @@ def fetch_whiteboard_data():
 
 def login_view(request):
     if request.method == 'POST':
-        # For now, redirect to select-site; we'll add proper login logic later
-        return redirect('select_site')
+        # Simulate location-based authentication
+        location_code = request.POST.get('location_code')
+
+        # For now, accept any location code; we'll add validation later
+        if location_code:
+            # Check if a user exists; if not, create one for testing
+            # In a real app, you'd authenticate against a real user
+            username = 'testuser'
+            if not User.objects.filter(username=username).exists():
+                user = User.objects.create_user(username=username, password='testpassword123')
+            else:
+                user = User.objects.get(username=username)
+
+            # Log the user in
+            user = authenticate(username=username, password='testpassword123')
+            if user is not None:
+                login(request, user)
+                return redirect('select_site')
+            else:
+                messages.error(request, "Authentication failed. Please try again.")
+        else:
+            messages.error(request, "Please enter a location code.")
     return render(request, 'login.html')
 
 @login_required
