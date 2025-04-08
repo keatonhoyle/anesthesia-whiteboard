@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Hospital{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-4">Select Your Hospital</h1>
+<form method="post" class="w-50 mx-auto">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="hospital" class="form-label">Hospital:</label>
+        <select class="form-select" id="hospital" name="hospital" required>
+            <option value="" disabled selected>Select a hospital</option>
+            {% for hospital in hospitals %}
+            <option value="{{ hospital.id }}">{{ hospital.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Select</button>
+</form>
+{% endblock %}

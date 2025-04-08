@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Division{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-4">Select Your Division</h1>
+<form method="post" class="w-50 mx-auto">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="division" class="form-label">Division:</label>
+        <select class="form-select" id="division" name="division" required>
+            <option value="" disabled selected>Select a division</option>
+            {% for division in divisions %}
+            <option value="{{ division.id }}">{{ division.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Select</button>
+</form>
+{% endblock %}

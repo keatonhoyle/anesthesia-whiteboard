@@ -3,8 +3,9 @@ import boto3
 import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm
+from .models import CustomUser, Division, Hospital
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -38,39 +39,83 @@ def fetch_whiteboard_data():
 
 def login_view(request):
     if request.method == 'POST':
-        # Simulate location-based authentication
-        location_code = request.POST.get('location_code')
-
-        # For now, accept any location code; we'll add validation later
-        if location_code:
-            # Check if a user exists; if not, create one for testing
-            # In a real app, you'd authenticate against a real user
-            username = 'testuser'
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(username=username, password='testpassword123')
-            else:
-                user = User.objects.get(username=username)
-
-            # Log the user in
-            user = authenticate(username=username, password='testpassword123')
-            if user is not None:
-                login(request, user)
-                return redirect('select_site')
-            else:
-                messages.error(request, "Authentication failed. Please try again.")
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('select_division')
         else:
-            messages.error(request, "Please enter a location code.")
-    return render(request, 'login.html')
+            messages.error(request, "Invalid email or password.")
+    else:
+        form = AuthenticationForm()
+    return render(request, 'login.html', {'form': form})
 
 @login_required
-def select_site(request):
-    if request.method == 'POST':
-        # For now, redirect to home; we'll add site selection logic later
+def select_division(request):
+    user = request.user
+    assigned_divisions = user.assigned_divisions.all()
+
+    if not assigned_divisions:
+        messages.error(request, "You are not assigned to any divisions. Please contact an admin.")
         return redirect('home')
-    return render(request, 'select_site.html')
+
+    if len(assigned_divisions) == 1:
+        # If only one division, auto-select it
+        request.session['selected_division_id'] = assigned_divisions[0].id
+        return redirect('select_hospital')
+
+    if request.method == 'POST':
+        selected_division_id = request.POST.get('division')
+        try:
+            selected_division = assigned_divisions.get(id=selected_division_id)
+            request.session['selected_division_id'] = selected_division.id
+            return redirect('select_hospital')
+        except Division.DoesNotExist:
+            messages.error(request, "Invalid division selection.")
+            return redirect('select_division')
+
+    return render(request, 'select_division.html', {'divisions': assigned_divisions})
+
+@login_required
+def select_hospital(request):
+    selected_division_id = request.session.get('selected_division_id')
+    if not selected_division_id:
+        return redirect('select_division')
+
+    try:
+        selected_division = Division.objects.get(id=selected_division_id)
+    except Division.DoesNotExist:
+        messages.error(request, "Invalid division selected.")
+        return redirect('select_division')
+
+    hospitals = selected_division.hospitals.all()
+    if not hospitals:
+        messages.error(request, "No hospitals available in this division.")
+        return redirect('home')
+
+    if len(hospitals) == 1:
+        # If only one hospital, auto-select it
+        request.session['selected_hospital_id'] = hospitals[0].id
+        return redirect('home')
+
+    if request.method == 'POST':
+        selected_hospital_id = request.POST.get('hospital')
+        try:
+            selected_hospital = hospitals.get(id=selected_hospital_id)
+            request.session['selected_hospital_id'] = selected_hospital.id
+            return redirect('home')
+        except Hospital.DoesNotExist:
+            messages.error(request, "Invalid hospital selection.")
+            return redirect('select_hospital')
+
+    return render(request, 'select_hospital.html', {'hospitals': hospitals})
 
 @login_required
 def home(request):
+    selected_hospital_id = request.session.get('selected_hospital_id')
+    if not selected_hospital_id:
+        return redirect('select_hospital')
+
     whiteboard = fetch_whiteboard_data()
     if whiteboard is None:
         messages.error(request, "Failed to load whiteboard data from DynamoDB. Please check your AWS credentials and try again.")

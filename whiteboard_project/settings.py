@@ -119,5 +119,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication settings
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/select-site/'
+LOGIN_REDIRECT_URL = '/select-division/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Custom user model
+AUTH_USER_MODEL = 'whiteboard.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'whiteboard.auth_backend.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]

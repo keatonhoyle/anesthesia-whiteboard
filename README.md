@@ -18,5 +18,5 @@ To get started:
 I got ChatGPT to update my Godot prompt generator script for your Django project. Here's how I use it:
 
 1. Modify the `new_feature` variable in the script. 
-2. Execute the script. `python3 prompt-manager.py > prompt.txt`
+2. Execute the script. `python prompt-manager.py > prompt.txt`
 3. Open prompt.txt, review it quickly to make sure you aren't going to copy/paste anything you shouldn't to Grok/Claude/ChatGPT. Paste it, and follow the instructions.

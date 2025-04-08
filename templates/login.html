@@ -6,10 +6,7 @@
 <h1 class="text-center mb-4">Login</h1>
 <form method="post" class="w-50 mx-auto">
     {% csrf_token %}
-    <div class="mb-3">
-        <label for="location_code" class="form-label">Location Code:</label>
-        <input type="text" class="form-control" id="location_code" name="location_code" required>
-    </div>
+    {{ form.as_p }}
     <button type="submit" class="btn btn-primary">Login</button>
 </form>
 {% endblock %}
