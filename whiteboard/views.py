@@ -43,6 +43,9 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            if user.role == 'admin':
+                # Admins bypass division/hospital selection and go to admin panel
+                return redirect('/admin/')
             return redirect('select_division')
         else:
             messages.error(request, "Invalid email or password.")
@@ -53,8 +56,10 @@ def login_view(request):
 @login_required
 def select_division(request):
     user = request.user
-    assigned_divisions = user.assigned_divisions.all()
+    if user.role == 'admin':
+        return redirect('/admin/')
 
+    assigned_divisions = user.assigned_divisions.all()
     if not assigned_divisions:
         messages.error(request, "You are not assigned to any divisions. Please contact an admin.")
         return redirect('home')
@@ -78,6 +83,10 @@ def select_division(request):
 
 @login_required
 def select_hospital(request):
+    user = request.user
+    if user.role == 'admin':
+        return redirect('/admin/')
+
     selected_division_id = request.session.get('selected_division_id')
     if not selected_division_id:
         return redirect('select_division')
@@ -112,6 +121,10 @@ def select_hospital(request):
 
 @login_required
 def home(request):
+    user = request.user
+    if user.role == 'admin':
+        return redirect('/admin/')
+
     selected_hospital_id = request.session.get('selected_hospital_id')
     if not selected_hospital_id:
         return redirect('select_hospital')
