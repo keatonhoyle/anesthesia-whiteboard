@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('Whiteboard')
 
-def fetch_whiteboard_data():
+def fetch_whiteboard_data(hospital_id=None):
     try:
         response = table.scan()
         items = response.get('Items', [])
@@ -23,12 +23,17 @@ def fetch_whiteboard_data():
             if 'Room' not in item:
                 logger.warning(f"Item missing Room attribute: {item}")
                 continue
+            # Filter by hospital_id if provided
+            if hospital_id and item.get('hospital_id') != str(hospital_id):
+                continue
             room = item['Room']
             provider = item.get('Provider') or item.get('provider') or item.get('provider_name', '')
             surgeon = item.get('Surgeon') or item.get('surgeon') or item.get('surgeon_name', '')
+            staff = item.get('Staff', '')  # New field for staff
             whiteboard[room] = {
                 'provider': provider,
-                'surgeon': surgeon
+                'surgeon': surgeon,
+                'staff': staff
             }
             if not provider or not surgeon:
                 logger.warning(f"Missing provider or surgeon for room {room}: {item}")
@@ -44,7 +49,6 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             if user.role == 'admin':
-                # Admins bypass division/hospital selection and go to admin panel
                 return redirect('/admin/')
             return redirect('select_division')
         else:
@@ -129,27 +133,34 @@ def home(request):
     if not selected_hospital_id:
         return redirect('select_hospital')
 
-    whiteboard = fetch_whiteboard_data()
+    whiteboard = fetch_whiteboard_data(hospital_id=selected_hospital_id)
     if whiteboard is None:
         messages.error(request, "Failed to load whiteboard data from DynamoDB. Please check your AWS credentials and try again.")
         whiteboard = {
-            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones"},
-            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel"}
+            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones", "staff": "CRNA Johnson"},
+            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel", "staff": "AA Davis"}
         }
     return render(request, 'index.html', {'whiteboard': whiteboard})
 
 @login_required
 def edit_entry(request, room):
+    selected_hospital_id = request.session.get('selected_hospital_id')
+    if not selected_hospital_id:
+        return redirect('select_hospital')
+
     if request.method == 'POST':
         provider = request.POST.get('provider')
         surgeon = request.POST.get('surgeon')
+        staff = request.POST.get('staff')
         try:
             table.update_item(
                 Key={'Room': room},
-                UpdateExpression="SET Provider = :p, Surgeon = :s",
+                UpdateExpression="SET Provider = :p, Surgeon = :s, Staff = :st, hospital_id = :h",
                 ExpressionAttributeValues={
                     ':p': provider,
-                    ':s': surgeon
+                    ':s': surgeon,
+                    ':st': staff,
+                    ':h': str(selected_hospital_id)
                 }
             )
             messages.success(request, f"Updated {room} successfully!")
@@ -162,8 +173,8 @@ def edit_entry(request, room):
     try:
         response = table.get_item(Key={'Room': room})
         entry = response.get('Item')
-        if not entry:
-            messages.error(request, f"Room {room} not found in DynamoDB.")
+        if not entry or entry.get('hospital_id') != str(selected_hospital_id):
+            messages.error(request, f"Room {room} not found in this hospital.")
             return redirect('home')
     except Exception as e:
         messages.error(request, f"Error fetching {room}: {str(e)}")
@@ -173,10 +184,15 @@ def edit_entry(request, room):
 
 @login_required
 def add_entry(request):
+    selected_hospital_id = request.session.get('selected_hospital_id')
+    if not selected_hospital_id:
+        return redirect('select_hospital')
+
     if request.method == 'POST':
         room = request.POST.get('room')
         provider = request.POST.get('provider')
         surgeon = request.POST.get('surgeon')
+        staff = request.POST.get('staff')
 
         try:
             # Check if the room already exists
@@ -185,12 +201,14 @@ def add_entry(request):
                 messages.error(request, f"Room {room} already exists!")
                 return redirect('home')
 
-            # Add the new entry
+            # Add the new entry with hospital_id and staff
             table.put_item(
                 Item={
                     'Room': room,
                     'Provider': provider,
-                    'Surgeon': surgeon
+                    'Surgeon': surgeon,
+                    'Staff': staff,
+                    'hospital_id': str(selected_hospital_id)
                 }
             )
             messages.success(request, f"Added {room} successfully!")

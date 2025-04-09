@@ -11,6 +11,7 @@
             <th>Room</th>
             <th>Provider</th>
             <th>Surgeon</th>
+            <th>Staff</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -20,6 +21,7 @@
             <td>{{ room }}</td>
             <td>{{ details.provider }}</td>
             <td>{{ details.surgeon }}</td>
+            <td>{{ details.staff }}</td>
             <td><a href="{% url 'edit_entry' room %}" class="btn btn-primary btn-sm">Edit</a></td>
         </tr>
         {% endfor %}
