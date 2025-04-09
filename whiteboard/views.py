@@ -6,17 +6,37 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from .models import CustomUser, Division, Hospital
+import os
+import uuid
+from datetime import datetime
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # Initialize DynamoDB client
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table = dynamodb.Table('Whiteboard')
+dynamodb_endpoint = os.getenv('DYNAMODB_ENDPOINT', 'http://localhost:8000')
+dynamodb = boto3.resource(
+    'dynamodb',
+    region_name='us-east-1',
+    endpoint_url=dynamodb_endpoint,
+    aws_access_key_id='fakeMyKeyId',
+    aws_secret_access_key='fakeSecretAccessKey'
+)
+whiteboard_table = dynamodb.Table('Whiteboard')
+staff_table = dynamodb.Table('Staff')
+assignments_table = dynamodb.Table('RoomAssignments')
+
+def fetch_staff():
+    try:
+        response = staff_table.scan()
+        return response.get('Items', [])
+    except Exception as e:
+        logger.error(f"Error fetching staff from DynamoDB: {e}")
+        return []
 
 def fetch_whiteboard_data(hospital_id=None):
     try:
-        response = table.scan()
+        response = whiteboard_table.scan()
         items = response.get('Items', [])
         whiteboard = {}
         for item in items:
@@ -29,7 +49,7 @@ def fetch_whiteboard_data(hospital_id=None):
             room = item['Room']
             provider = item.get('Provider') or item.get('provider') or item.get('provider_name', '')
             surgeon = item.get('Surgeon') or item.get('surgeon') or item.get('surgeon_name', '')
-            staff = item.get('Staff', '')  # New field for staff
+            staff = item.get('Staff', '')
             whiteboard[room] = {
                 'provider': provider,
                 'surgeon': surgeon,
@@ -137,10 +157,11 @@ def home(request):
     if whiteboard is None:
         messages.error(request, "Failed to load whiteboard data from DynamoDB. Please check your AWS credentials and try again.")
         whiteboard = {
-            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones", "staff": "CRNA Johnson"},
-            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel", "staff": "AA Davis"}
+            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones", "staff": "1"},
+            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel", "staff": "2"}
         }
-    return render(request, 'index.html', {'whiteboard': whiteboard})
+    staff_list = fetch_staff()
+    return render(request, 'index.html', {'whiteboard': whiteboard, 'staff_list': staff_list})
 
 @login_required
 def edit_entry(request, room):
@@ -148,19 +169,39 @@ def edit_entry(request, room):
     if not selected_hospital_id:
         return redirect('select_hospital')
 
+    staff_list = fetch_staff()
+
     if request.method == 'POST':
         provider = request.POST.get('provider')
         surgeon = request.POST.get('surgeon')
-        staff = request.POST.get('staff')
+        staff_id = request.POST.get('staff')
         try:
-            table.update_item(
+            # Update the whiteboard entry
+            whiteboard_table.update_item(
                 Key={'Room': room},
                 UpdateExpression="SET Provider = :p, Surgeon = :s, Staff = :st, hospital_id = :h",
                 ExpressionAttributeValues={
                     ':p': provider,
                     ':s': surgeon,
-                    ':st': staff,
+                    ':st': staff_id,
                     ':h': str(selected_hospital_id)
+                }
+            )
+            # Log the assignment in RoomAssignments
+            assignment_id = str(uuid.uuid4())
+            assignment_date = datetime.now().strftime('%Y-%m-%d')
+            assignments_table.put_item(
+                Item={
+                    'assignment_id': assignment_id,
+                    'room': room,
+                    'hospital_id': str(selected_hospital_id),
+                    'surgeon_id': surgeon,  # For now, using name; we'll update to IDs later
+                    'anesthesiologist_id': provider,  # For now, using name
+                    'app_id': staff_id,
+                    'student_id': staff_id if any(staff['staff_id'] == staff_id and staff['sub_role'] == 'SRNA' for staff in staff_list) else '',
+                    'date': assignment_date,
+                    'cases': [],  # Placeholder for cases
+                    'provider_mode': 'Directed CRNA' if any(staff['staff_id'] == staff_id and staff['role'] == 'CRNA' for staff in staff_list) else 'Directed AA'
                 }
             )
             messages.success(request, f"Updated {room} successfully!")
@@ -171,7 +212,7 @@ def edit_entry(request, room):
 
     # Fetch the entry to edit
     try:
-        response = table.get_item(Key={'Room': room})
+        response = whiteboard_table.get_item(Key={'Room': room})
         entry = response.get('Item')
         if not entry or entry.get('hospital_id') != str(selected_hospital_id):
             messages.error(request, f"Room {room} not found in this hospital.")
@@ -180,7 +221,7 @@ def edit_entry(request, room):
         messages.error(request, f"Error fetching {room}: {str(e)}")
         return redirect('home')
 
-    return render(request, 'edit.html', {'entry': entry})
+    return render(request, 'edit.html', {'entry': entry, 'staff_list': staff_list})
 
 @login_required
 def add_entry(request):
@@ -188,27 +229,46 @@ def add_entry(request):
     if not selected_hospital_id:
         return redirect('select_hospital')
 
+    staff_list = fetch_staff()
+
     if request.method == 'POST':
         room = request.POST.get('room')
         provider = request.POST.get('provider')
         surgeon = request.POST.get('surgeon')
-        staff = request.POST.get('staff')
+        staff_id = request.POST.get('staff')
 
         try:
             # Check if the room already exists
-            response = table.get_item(Key={'Room': room})
+            response = whiteboard_table.get_item(Key={'Room': room})
             if response.get('Item'):
                 messages.error(request, f"Room {room} already exists!")
                 return redirect('home')
 
             # Add the new entry with hospital_id and staff
-            table.put_item(
+            whiteboard_table.put_item(
                 Item={
                     'Room': room,
                     'Provider': provider,
                     'Surgeon': surgeon,
-                    'Staff': staff,
+                    'Staff': staff_id,
                     'hospital_id': str(selected_hospital_id)
+                }
+            )
+            # Log the assignment in RoomAssignments
+            assignment_id = str(uuid.uuid4())
+            assignment_date = datetime.now().strftime('%Y-%m-%d')
+            assignments_table.put_item(
+                Item={
+                    'assignment_id': assignment_id,
+                    'room': room,
+                    'hospital_id': str(selected_hospital_id),
+                    'surgeon_id': surgeon,  # For now, using name; we'll update to IDs later
+                    'anesthesiologist_id': provider,  # For now, using name
+                    'app_id': staff_id,
+                    'student_id': staff_id if any(staff['staff_id'] == staff_id and staff['sub_role'] == 'SRNA' for staff in staff_list) else '',
+                    'date': assignment_date,
+                    'cases': [],  # Placeholder for cases
+                    'provider_mode': 'Directed CRNA' if any(staff['staff_id'] == staff_id and staff['role'] == 'CRNA' for staff in staff_list) else 'Directed AA'
                 }
             )
             messages.success(request, f"Added {room} successfully!")
@@ -217,7 +277,7 @@ def add_entry(request):
             messages.error(request, f"Error adding {room}: {str(e)}")
             return redirect('home')
 
-    return render(request, 'add.html')
+    return render(request, 'add.html', {'staff_list': staff_list})
 
 def logout_view(request):
     logout(request)
