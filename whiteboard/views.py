@@ -29,7 +29,9 @@ assignments_table = dynamodb.Table('RoomAssignments')
 def fetch_staff():
     try:
         response = staff_table.scan()
-        return response.get('Items', [])
+        items = response.get('Items', [])
+        logger.info(f"Fetched {len(items)} staff members: {items}")
+        return items
     except Exception as e:
         logger.error(f"Error fetching staff from DynamoDB: {e}")
         return []
@@ -38,6 +40,10 @@ def fetch_whiteboard_data(hospital_id=None):
     try:
         response = whiteboard_table.scan()
         items = response.get('Items', [])
+        logger.info(f"Raw whiteboard items: {items}")
+        # Fetch staff list to map staff_id to name and role
+        staff_list = fetch_staff()
+        staff_dict = {staff['staff_id']: staff for staff in staff_list}
         whiteboard = {}
         for item in items:
             if 'Room' not in item:
@@ -49,14 +55,19 @@ def fetch_whiteboard_data(hospital_id=None):
             room = item['Room']
             provider = item.get('Provider') or item.get('provider') or item.get('provider_name', '')
             surgeon = item.get('Surgeon') or item.get('surgeon') or item.get('surgeon_name', '')
-            staff = item.get('Staff', '')
+            staff_id = item.get('Staff', '')
+            # Map staff_id to staff name and role
+            staff_info = staff_dict.get(staff_id, {'name': f"Unknown (staff_id: {staff_id})", 'role': ''})
             whiteboard[room] = {
                 'provider': provider,
                 'surgeon': surgeon,
-                'staff': staff
+                'staff_id': staff_id,
+                'staff_name': staff_info['name'],
+                'staff_role': staff_info['role']
             }
             if not provider or not surgeon:
                 logger.warning(f"Missing provider or surgeon for room {room}: {item}")
+        logger.info(f"Processed whiteboard data: {whiteboard}")
         return whiteboard
     except Exception as e:
         logger.error(f"Error fetching data from DynamoDB: {e}")
@@ -157,10 +168,14 @@ def home(request):
     if whiteboard is None:
         messages.error(request, "Failed to load whiteboard data from DynamoDB. Please check your AWS credentials and try again.")
         whiteboard = {
-            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones", "staff": "1"},
-            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel", "staff": "2"}
+            "Room 1": {"provider": "Dr. Smith", "surgeon": "Dr. Jones", "staff_id": "1", "staff_name": "CRNA Johnson", "staff_role": "CRNA"},
+            "Room 2": {"provider": "Dr. Lee", "surgeon": "Dr. Patel", "staff_id": "2", "staff_name": "AA Davis", "staff_role": "AA"}
         }
     staff_list = fetch_staff()
+    if not staff_list:
+        messages.warning(request, "No staff members found in the database.")
+    logger.info(f"Whiteboard data: {whiteboard}")
+    logger.info(f"Staff list in home view: {staff_list}")
     return render(request, 'index.html', {'whiteboard': whiteboard, 'staff_list': staff_list})
 
 @login_required

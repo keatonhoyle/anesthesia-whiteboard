@@ -20,7 +20,12 @@
     </div>
     <div class="mb-3">
         <label for="staff" class="form-label">Staff:</label>
-        <input type="text" class="form-control" id="staff" name="staff" required>
+        <select class="form-select" id="staff" name="staff" required>
+            <option value="" disabled selected>Select a staff member</option>
+            {% for staff in staff_list %}
+            <option value="{{ staff.staff_id }}">{{ staff.name }} ({{ staff.role }})</option>
+            {% endfor %}
+        </select>
     </div>
     <button type="submit" class="btn btn-success">Add</button>
 </form>

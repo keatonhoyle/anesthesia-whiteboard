@@ -129,3 +129,22 @@ AUTHENTICATION_BACKENDS = [
     'whiteboard.auth_backend.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

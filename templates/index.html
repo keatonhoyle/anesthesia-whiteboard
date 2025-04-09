@@ -21,8 +21,12 @@
             <td>{{ room }}</td>
             <td>{{ details.provider }}</td>
             <td>{{ details.surgeon }}</td>
-            <td>{{ details.staff }}</td>
+            <td>{{ details.staff_name }} ({{ details.staff_role }})</td>
             <td><a href="{% url 'edit_entry' room %}" class="btn btn-primary btn-sm">Edit</a></td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No rooms available for this hospital.</td>
         </tr>
         {% endfor %}
     </tbody>
