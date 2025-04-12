@@ -1,9 +1,9 @@
 import boto3
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1', endpoint_url='http://localhost:8000')
-table = dynamodb.Table('Whiteboard')
+table = dynamodb.Table('Whiteboard-Dev')
 
-# Update test data for Chippenham Hospital (hospital_id: 1)
+# Add test data for Chippenham Hospital (hospital_id: 1)
 table.put_item(
     Item={
         'Room': 'Room 1',
@@ -23,7 +23,7 @@ table.put_item(
     }
 )
 
-# Update test data for Johnston-Willis Hospital (hospital_id: 2)
+# Add test data for Johnston-Willis Hospital (hospital_id: 2)
 table.put_item(
     Item={
         'Room': 'Room 3',
@@ -34,7 +34,7 @@ table.put_item(
     }
 )
 
-# Update test data for VCU Main Hospital (hospital_id: 3)
+# Add test data for VCU Main Hospital (hospital_id: 3)
 table.put_item(
     Item={
         'Room': 'Room 4',

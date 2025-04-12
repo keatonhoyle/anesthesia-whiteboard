@@ -13,6 +13,8 @@ from datetime import datetime
 # Set up logging
 logger = logging.getLogger(__name__)
 
+from django.conf import settings
+
 # Initialize DynamoDB client
 dynamodb_endpoint = os.getenv('DYNAMODB_ENDPOINT', 'http://localhost:8000')
 dynamodb = boto3.resource(
@@ -22,9 +24,9 @@ dynamodb = boto3.resource(
     aws_access_key_id='fakeMyKeyId',
     aws_secret_access_key='fakeSecretAccessKey'
 )
-whiteboard_table = dynamodb.Table('Whiteboard')
-staff_table = dynamodb.Table('Staff')
-assignments_table = dynamodb.Table('RoomAssignments')
+whiteboard_table = dynamodb.Table(settings.WHITEBOARD_TABLE)
+staff_table = dynamodb.Table(settings.STAFF_TABLE)
+assignments_table = dynamodb.Table(settings.ROOM_ASSIGNMENTS_TABLE)
 
 def fetch_staff():
     try:
