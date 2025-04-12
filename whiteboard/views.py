@@ -9,20 +9,21 @@ from .models import CustomUser, Division, Hospital
 import os
 import uuid
 from datetime import datetime
+import hashlib
+import hmac
+import base64
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 from django.conf import settings
 
-# Initialize DynamoDB client
-dynamodb_endpoint = os.getenv('DYNAMODB_ENDPOINT', 'http://localhost:8000')
+# Initialize DynamoDB client using settings from .env.staging
 dynamodb = boto3.resource(
     'dynamodb',
-    region_name='us-east-1',
-    endpoint_url=dynamodb_endpoint,
-    aws_access_key_id='fakeMyKeyId',
-    aws_secret_access_key='fakeSecretAccessKey'
+    region_name=settings.AWS_REGION,
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
 )
 whiteboard_table = dynamodb.Table(settings.WHITEBOARD_TABLE)
 staff_table = dynamodb.Table(settings.STAFF_TABLE)
@@ -75,20 +76,98 @@ def fetch_whiteboard_data(hospital_id=None):
         logger.error(f"Error fetching data from DynamoDB: {e}")
         return None
 
+# Helper function to compute Cognito SECRET_HASH
+def compute_secret_hash(client_id, client_secret, username):
+    message = username + client_id
+    hmac_obj = hmac.new(client_secret.encode('utf-8'), message.encode('utf-8'), hashlib.sha256)
+    return base64.b64encode(hmac_obj.digest()).decode('utf-8')
+
 def login_view(request):
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Initialize Cognito client
+        client = boto3.client(
+            'cognito-idp',
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        )
+
+        try:
+            # Compute SECRET_HASH for Cognito authentication
+            secret_hash = compute_secret_hash(
+                settings.AWS_COGNITO_APP_CLIENT_ID,
+                settings.AWS_COGNITO_APP_CLIENT_SECRET,
+                username
+            )
+
+            # Authenticate with Cognito
+            response = client.initiate_auth(
+                ClientId=settings.AWS_COGNITO_APP_CLIENT_ID,
+                AuthFlow='USER_PASSWORD_AUTH',
+                AuthParameters={
+                    'USERNAME': username,
+                    'PASSWORD': password,
+                    'SECRET_HASH': secret_hash,
+                },
+            )
+
+            # Log the full response for debugging
+            logger.info(f"Cognito initiate_auth response: {response}")
+
+            # Check if authentication requires a new password (temporary password scenario)
+            if 'ChallengeName' in response and response['ChallengeName'] == 'NEW_PASSWORD_REQUIRED':
+                messages.error(request, "You need to change your temporary password. Please check your email for instructions or contact an admin.")
+                return render(request, 'login.html', {'form': AuthenticationForm()})
+
+            # Check for AuthenticationResult
+            if 'AuthenticationResult' not in response:
+                raise KeyError('AuthenticationResult')
+
+            # Get user details from Cognito
+            user_response = client.get_user(
+                AccessToken=response['AuthenticationResult']['AccessToken']
+            )
+            user_attributes = {attr['Name']: attr['Value'] for attr in user_response['UserAttributes']}
+            email = user_attributes.get('email', username)
+
+            # Sync user with CustomUser in the database
+            user, created = CustomUser.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': username,
+                    'role': user_attributes.get('custom:role', 'end_user'),
+                }
+            )
+            if created:
+                # If user was created, assign divisions if specified in Cognito
+                assigned_divisions = user_attributes.get('custom:assigned_divisions', '')
+                if assigned_divisions:
+                    division_ids = assigned_divisions.split(',')
+                    divisions = Division.objects.filter(id__in=division_ids)
+                    user.assigned_divisions.set(divisions)
+
+            # Log the user in using Django's auth system
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
             if user.role == 'admin':
                 return redirect('/admin/')
             return redirect('select_division')
-        else:
+
+        except client.exceptions.NotAuthorizedException:
             messages.error(request, "Invalid email or password.")
-    else:
-        form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+            return render(request, 'login.html', {'form': AuthenticationForm()})
+        except client.exceptions.UserNotConfirmedException:
+            messages.error(request, "User is not confirmed. Please confirm your email.")
+            return render(request, 'login.html', {'form': AuthenticationForm()})
+        except Exception as e:
+            logger.error(f"Error during Cognito authentication: {e}")
+            messages.error(request, f"Error: {str(e)}")
+            return render(request, 'login.html', {'form': AuthenticationForm()})
+
+    return render(request, 'login.html', {'form': AuthenticationForm()})
 
 @login_required
 def select_division(request):

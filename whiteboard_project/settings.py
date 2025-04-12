@@ -1,17 +1,32 @@
 import os
+import environ
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Initialize environment variables
+env = environ.Env(
+    DEBUG=(bool, False),
+    ENVIRONMENT=(str, 'dev'),  # Default to 'dev'
+)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Environment (set via environment variable)
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'dev')  # Default to 'dev'
+# Load the .env file (e.g., .env.staging for Staging)
+environ.Env.read_env(os.path.join(BASE_DIR, f'.env.{env("ENVIRONMENT").lower()}'))
 
-# Security settings
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-your-secret-key-here')
-DEBUG = ENVIRONMENT == 'dev'
+# Environment and security settings
+ENVIRONMENT = env('ENVIRONMENT')
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env('DEBUG')
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']  # Add more hosts for Staging/Prod later
+
+# AWS settings (for DynamoDB and Cognito)
+AWS_REGION = env('AWS_REGION')
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_COGNITO_USER_POOL_ID = env('AWS_COGNITO_USER_POOL_ID')
+AWS_COGNITO_APP_CLIENT_ID = env('AWS_COGNITO_APP_CLIENT_ID')
+AWS_COGNITO_APP_CLIENT_SECRET = env('AWS_COGNITO_APP_CLIENT_SECRET')
+AWS_COGNITO_DOMAIN = env('AWS_COGNITO_DOMAIN')
 
 # Application definition
 INSTALLED_APPS = [
@@ -65,19 +80,19 @@ if ENVIRONMENT == 'dev':
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'ENGINE': env('DB_ENGINE'),
+            'NAME': env('DB_NAME'),
+            'USER': env('DB_USER'),
+            'PASSWORD': env('DB_PASSWORD'),
+            'HOST': env('DB_HOST'),
+            'PORT': env('DB_PORT', default='5432'),
         }
     }
 
 # Validate database settings for non-Dev environments
 if ENVIRONMENT != 'dev':
-    required_db_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST']
-    missing_vars = [var for var in required_db_vars if not os.getenv(var)]
+    required_db_vars = ['DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST']
+    missing_vars = [var for var in required_db_vars if not env(var, default=None)]
     if missing_vars:
         raise ImproperlyConfigured(f"Missing required database environment variables: {missing_vars}")
 
@@ -117,7 +132,7 @@ STATICFILES_DIRS = [BASE_DIR / 'staticfiles']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # DynamoDB table names
-DYNAMODB_TABLE_PREFIX = os.getenv('DYNAMODB_TABLE_PREFIX', 'Dev')
+DYNAMODB_TABLE_PREFIX = env('DYNAMODB_TABLE_PREFIX', default='Dev')
 WHITEBOARD_TABLE = f"Whiteboard-{DYNAMODB_TABLE_PREFIX}"
 STAFF_TABLE = f"Staff-{DYNAMODB_TABLE_PREFIX}"
 ROOM_ASSIGNMENTS_TABLE = f"RoomAssignments-{DYNAMODB_TABLE_PREFIX}"
